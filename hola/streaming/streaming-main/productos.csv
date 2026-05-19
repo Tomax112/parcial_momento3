@@ -1,0 +1,11 @@
+id,nombre,categoria,precio
+1,Laptop,Tecnologia,2500000
+2,Celular,Tecnologia,1200000
+3,Teclado,Tecnologia,150000
+4,Mouse,Tecnologia,80000
+5,Silla,Hogar,300000
+6,Escritorio,Hogar,700000
+7,Camiseta,Ropa,90000
+8,Zapatos,Ropa,180000
+9,Audifonos,Tecnologia,200000
+10,Tablet,Tecnologia,1500000

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="oscuro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo | VELORA</title>
+  <link rel="stylesheet" href="./index.css">
+  <link rel="stylesheet" href="./peliculas.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+  <script src="./efectos.js"></script>
+  <script src="./externalApi.js"></script>
+  <script src="./calificaciones.js" defer></script>
+  <script src="./peliculas.js" defer></script>
+</head>
+<body>
+
+  <video autoplay muted loop id="video-fondo">
+    <source src="./video.mp4" type="video/mp4">
+  </video>
+
+  <header class="navbar">
+    <section class="logo-container">
+      <img src="./logo streaming.jpeg" alt="Logo" class="logo">
+      <h1>VELORA</h1>
+    </section>
+
+    <aside id="weather-widget" title="Clima actual" aria-label="Widget del clima">
+      <img id="weather-icon" src="" alt="clima">
+      <span id="weather-temp">...</span>
+      <span id="weather-city">Cargando...</span>
+    </aside>
+
+    <nav class="navbar-controls" aria-label="Controles de usuario">
+      <select id="selector-region" class="util-btn selector-region" onchange="cambiarRegion(this.value)">
+        <option value="CO">🇨🇴 COP</option>
+        <option value="US">🇺🇸 USD</option>
+        <option value="MX">🇲🇽 MXN</option>
+        <option value="AR">🇦🇷 ARS</option>
+        <option value="CL">🇨🇱 CLP</option>
+        <option value="ES">🇪🇺 EUR</option>
+        <option value="PE">🇵🇪 PEN</option>
+        <option value="BR">🇧🇷 BRL</option>
+      </select>
+      <span id="region-indicator" class="util-btn region-badge">📍 ...</span>
+      <button class="util-btn" id="btn-tema" onclick="toggleTema()">☀️ Claro</button>
+      <button class="util-btn" onclick="toggleIdioma()">
+        <span id="txt-idioma-btn">EN</span>
+      </button>
+      <button class="util-btn" onclick="abrirPerfil()">👤</button>
+      <button class="util-btn btn-logout" onclick="cerrarSesion()">🚪</button>
+    </nav>
+  </header>
+
+    <main class="main-controls">
+    <section class="search-filter-group">
+      <section class="buscador-box">
+        <input type="text" id="buscador" data-i18n-ph="buscar" placeholder="Buscar películas o series...">
+        <button onclick="buscarPeliculas()">BUSCAR</button>
+      </section>
+      <section class="filtro-box">
+        <select id="filtroGenero" onchange="filtrarGeneroSelect()">
+          <option value="Todos" data-i18n="todasCat">Todas las categorías</option>
+          <option value="Acción" data-i18n="accion">Acción</option>
+          <option value="Drama" data-i18n="drama">Drama</option>
+          <option value="Comedia" data-i18n="comedia">Comedia</option>
+          <option value="Terror" data-i18n="terror">Terror</option>
+          <option value="Romance" data-i18n="romance">Romance</option>
+          <option value="Ciencia ficción" data-i18n="ciencia_ficcion">Ciencia ficción</option>
+          <option value="Animación" data-i18n="animacion">Animación</option>
+          <option value="Aventura" data-i18n="aventura">Aventura</option>
+        </select>
+      </section>
+    </section>
+  </main>
+
+  <section id="slider-estrenos"></section>
+  <section class="contenedor" id="peliculas"></section>
+
+  <footer>
+    <p data-i18n="footer">© 2026 VELORA — Experiencia Futurista</p>
+  </footer>
+
+  <section class="modal-overlay oculto" id="modal-perfil" role="dialog" aria-modal="true">
+    <section class="modal-box">
+      <button class="modal-close" onclick="cerrarPerfil()">✕</button>
+      <h3>👤 Mi Perfil</h3>
+      <section id="perfil-contenido"><p style="color:var(--text2)">Cargando...</p></section>
+    </section>
+  </section>
+
+  <script>
+    const supabaseClient = window.supabase.createClient(
+      "https://ytdkmyotjzaissxfjjuu.supabase.co",
+      "sb_publishable_6_4LFbvOzGUfsnGyhgQvjQ_2JCVJxlH"
+    );
+    window.supabaseClient = supabaseClient;
+
+    async function cerrarSesion() {
+      await supabaseClient.auth.signOut();
+      window.location.href = "index.html";
+    }
+
+    async function cargarDatosPerfil() {
+      const txt = window.t();
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+      const { data: perfil } = await supabaseClient
+        .from("perfiles").select("*").eq("id", user.id).maybeSingle();
+
+      const c = document.getElementById("perfil-contenido");
+      if (!perfil) { c.innerHTML = "<p>No hay datos.</p>"; return; }
+
+      const tarjeta = perfil.tarjeta_ultimos4
+        ? `•••• •••• •••• ${perfil.tarjeta_ultimos4}`
+        : (txt.sinTarjeta || "Sin tarjeta");
+
+      c.innerHTML = `
+        <p class="perfil-dato"><span>Nombre</span><span>${perfil.nombre || "—"}</span></p>
+        <p class="perfil-dato"><span>Email</span><span>${perfil.email || user.email}</span></p>
+        <p class="perfil-dato"><span>${txt.planActivo || "Plan"}</span><span>${perfil.tipo_suscripcion || "—"}</span></p>
+        <p class="perfil-dato"><span>${txt.tarjetaGuardada || "Tarjeta"}</span><span>${tarjeta}</span></p>
+        ${perfil.id_suscripcion ? `<span class="badge-plan">${perfil.tipo_suscripcion}</span>` : ""}
+      `;
+    }
+    window.cargarDatosPerfil = cargarDatosPerfil;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const idiomaBtn = document.getElementById("txt-idioma-btn");
+      if (idiomaBtn) idiomaBtn.textContent = window.VELORA_IDIOMA === "es" ? "EN" : "ES";
+      
+      // Poner selector en la región guardada
+      const selector = document.getElementById("selector-region");
+      const regionGuardada = localStorage.getItem("velora_region") || "CO";
+      if (selector) selector.value = regionGuardada;
+      
+      if (typeof actualizarIndicadorUbicacion === 'function') actualizarIndicadorUbicacion();
+      setTimeout(() => window.cargarClima?.(), 300);
+    });
+  </script>
+
+</body>
+</html>
